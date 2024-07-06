@@ -2,9 +2,9 @@
   "name": "telegram-bot",
   "version": "1.0.0",
   "description": "Telegram bot for downloading links",
-  "main": "bot.js",
+  "main": "tera.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node tera.js"
   },
   "dependencies": {
     "axios": "^0.21.1",
