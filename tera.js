@@ -1,5 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 // Ganti dengan token bot Anda
 const token = '7243525886:AAHcEplWXr49MCOYfqgHvdPdeOI24YK_1D8';
@@ -25,12 +27,39 @@ bot.onText(/\/download (.+)/, (msg, match) => {
         .then(response => {
             if (response.status === 200) {
                 const data = response.data;
-                let reply = 'Download links:\n\n';
-                data.forEach(item => {
-                    reply += `File Name: ${item.server_filename}\n`;
-                    reply += `Download link: ${item.dlink}\n\n`;
+                data.forEach((item, index) => {
+                    const fileName = item.server_filename;
+                    const downloadUrl = item.dlink;
+                    const filePath = path.join(__dirname, fileName);
+
+                    // Unduh file dan simpan ke local storage
+                    axios({
+                        url: downloadUrl,
+                        method: 'GET',
+                        responseType: 'stream'
+                    }).then(res => {
+                        const writer = fs.createWriteStream(filePath);
+                        res.data.pipe(writer);
+
+                        writer.on('finish', () => {
+                            // Kirim file ke pengguna setelah selesai diunduh
+                            bot.sendDocument(chatId, filePath)
+                                .then(() => {
+                                    // Hapus file setelah dikirim
+                                    fs.unlinkSync(filePath);
+                                })
+                                .catch(error => {
+                                    bot.sendMessage(chatId, `Error sending file: ${error.message}`);
+                                });
+                        });
+
+                        writer.on('error', err => {
+                            bot.sendMessage(chatId, `Error downloading file: ${err.message}`);
+                        });
+                    }).catch(error => {
+                        bot.sendMessage(chatId, `Error: ${error.message}`);
+                    });
                 });
-                bot.sendMessage(chatId, reply);
             } else {
                 bot.sendMessage(chatId, `Failed with status code: ${response.status}`);
             }
